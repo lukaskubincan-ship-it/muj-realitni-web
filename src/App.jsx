@@ -710,7 +710,7 @@ export default function App() {
                 {/* Background Image & Overlay */}
                 <div 
                   className="absolute inset-0 bg-cover bg-center z-0"
-                  style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=2000&q=80')" }}
+                  style={{ backgroundImage: "url('/reality-extend.jpeg')" }}
                 />
                 <div className="absolute inset-0 bg-slate-900/60 z-0" />
 
