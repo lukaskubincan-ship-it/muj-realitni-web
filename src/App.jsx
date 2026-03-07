@@ -221,15 +221,15 @@ const team = [
   { 
     name: "Petr Kubinčan", 
     role: { cz: "Majitel & Hlavní makléř", en: "Owner & Lead Broker" }, 
-    img: "reality 1x1.jpeg" 
+    img: "/reality 1x1.jpeg" 
   },
   { 
-    name: "Spolupracovník", 
-    role: { cz: "Realitní specialistka", en: "Real Estate Specialist" }, 
+    name: "Spolupracovník 1", 
+    role: { cz: "Realitní specialista", en: "Real Estate Specialist" }, 
     img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=256&q=80" 
   },
   { 
-    name: "Spolupracovník", 
+    name: "Spolupracovník 2", 
     role: { cz: "Hypoteční poradce", en: "Mortgage Advisor" }, 
     img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&q=80" 
   }
@@ -239,7 +239,7 @@ const team = [
 const SHEET_ID = '1-WjtdnZ2ln3qV6ZJtc9dfWVzhhePt2mNZLJK8qvyfp8';
 
 // --- NASTAVENÍ EMAILU PRO ODESÍLÁNÍ POPTÁVEK Z FORMULÁŘE ---
-const CONTACT_EMAIL = 'info@rkkubincan.cz';
+const CONTACT_EMAIL = 'lukas.kubincan@gmail.com';
 
 // --- COMPONENTS ---
 const FadeIn = ({ children, delay = 0, className = "" }) => (
@@ -729,13 +729,13 @@ export default function App() {
                 {/* Background Image (Desktop verze - Počítače a tablety) */}
                 <div 
                   className="absolute inset-0 bg-cover bg-center z-0 hidden md:block"
-                  style={{ backgroundImage: "url('reality-extend.jpeg')" }}
+                  style={{ backgroundImage: "url('/reality-extend.jpeg')" }}
                 />
                 
                 {/* Background Image (Mobilní verze - Speciálně oříznutá fotka) */}
                 <div 
                   className="absolute inset-0 bg-cover bg-center z-0 block md:hidden"
-                  style={{ backgroundImage: "url('reality 1x1.jpeg')" }}
+                  style={{ backgroundImage: "url('/reality 1x1.jpeg')" }}
                 />
 
                 <div className="absolute inset-0 bg-slate-900/60 z-0" />
@@ -911,8 +911,8 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Right Map Container - LEAFLET MAPA */}
-                      <div className="w-full lg:w-1/2 relative min-h-[450px] lg:h-[550px] rounded-[40px] shadow-2xl border border-slate-100 overflow-hidden isolate bg-slate-100">
+                      {/* Right Map Container - LEAFLET MAPA S OPRAVENOU VÝŠKOU PRO MOBILY */}
+                      <div className="w-full lg:w-1/2 h-[400px] sm:h-[450px] lg:h-[550px] relative rounded-[40px] shadow-2xl border border-slate-100 overflow-hidden isolate bg-slate-100 flex-shrink-0">
                         <RealEstateMap 
                           properties={properties} 
                           onPropertySelect={setSelectedProperty} 
@@ -1147,7 +1147,7 @@ function RealEstateMap({ properties, onPropertySelect, t, lang }) {
 
       const L = window.L;
       
-      // Inicializace mapy (střed nastavíme dynamicky níže)
+      // Inicializace mapy
       const map = L.map(mapRef.current);
       mapInstanceRef.current = map;
 
@@ -1239,12 +1239,18 @@ function RealEstateMap({ properties, onPropertySelect, t, lang }) {
       // Automatické přiblížení a vycentrování mapy podle nasbíraných pinu
       if (boundsCoords.length > 0) {
         const bounds = L.latLngBounds(boundsCoords);
-        // padding: nechá trochu volného okraje, maxZoom: zajistí, aby to nebylo přiblíženo až moc (když je jen 1 inzerát)
+        // padding: nechá trochu volného okraje, maxZoom: zajistí, aby to nebylo přiblíženo až moc
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
       } else {
         // Fallback pro případ, že žádný inzerát nemá GPS souřadnice
         map.setView([50.15, 12.65], 9);
       }
+
+      // KLÍČOVÁ OPRAVA PRO MOBILY: Vynucené překreslení mapy po načtení
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 300);
+
     };
 
     loadLeaflet();
@@ -1258,7 +1264,7 @@ function RealEstateMap({ properties, onPropertySelect, t, lang }) {
   }, [properties, lang, onPropertySelect, t]);
 
   return (
-    <div className="w-full h-full relative">
+    <div className="absolute inset-0 w-full h-full">
       <style>{`
         .custom-leaflet-popup .leaflet-popup-content-wrapper { padding: 0; overflow: hidden; border-radius: 8px; border: none; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
         .custom-leaflet-popup .leaflet-popup-content { margin: 0; width: auto !important; }
