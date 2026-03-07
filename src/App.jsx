@@ -810,15 +810,15 @@ export default function App() {
               {/* HERO SECTION */}
               <section id="navHome" className="relative h-[85vh] min-h-[600px] flex items-center justify-center">
                 
-                {/* Background Image (Desktop verze - Počítače a tablety) */}
+                {/* Background Image (Desktop verze - Počítače a velké obrazovky) */}
                 <div 
-                  className="absolute inset-0 bg-cover bg-center z-0 hidden md:block"
+                  className="absolute inset-0 bg-cover bg-center z-0 hidden lg:block"
                   style={{ backgroundImage: "url('/reality-extend.jpeg')" }}
                 />
                 
-                {/* Background Image (Mobilní verze - Speciálně oříznutá fotka) */}
+                {/* Background Image (Mobilní verze a tablety - Speciálně oříznutá fotka) */}
                 <div 
-                  className="absolute inset-0 bg-cover bg-center z-0 block md:hidden"
+                  className="absolute inset-0 bg-cover bg-center z-0 block lg:hidden"
                   style={{ backgroundImage: "url('/reality 1x1.jpeg')" }}
                 />
 
