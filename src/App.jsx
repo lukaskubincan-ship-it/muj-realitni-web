@@ -7,6 +7,44 @@ import {
   Maximize, Check
 } from 'lucide-react';
 
+// --- VLASTNÍ FUNKCE PRO KINEMATICKÉ PLYNULÉ SCROLLOVÁNÍ ---
+const smoothScrollTo = (e, targetId) => {
+  if (e && e.preventDefault) e.preventDefault();
+  
+  let targetPosition = 0;
+  
+  if (targetId !== 'top') {
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    const headerOffset = 80; // Zabrání překrytí hlavičkou
+    targetPosition = target.getBoundingClientRect().top + window.scrollY - headerOffset;
+  }
+
+  const startPosition = window.scrollY;
+  const distance = targetPosition - startPosition;
+  const duration = 1200; // 1.2 sekundy - luxusně plynulý přejezd
+  let start = null;
+
+  const animation = (currentTime) => {
+    if (start === null) start = currentTime;
+    const timeElapsed = currentTime - start;
+    const progress = Math.min(timeElapsed / duration, 1);
+
+    // Křivka EaseInOutCubic (Pomalý rozjezd, zrychlení a velmi jemný dojezd)
+    const ease = progress < 0.5 
+      ? 4 * progress * progress * progress 
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+    window.scrollTo(0, startPosition + distance * ease);
+
+    if (timeElapsed < duration) {
+      requestAnimationFrame(animation);
+    }
+  };
+
+  requestAnimationFrame(animation);
+};
+
 // --- DICTIONARY (Bilingual Support) ---
 const dict = {
   cz: {
@@ -294,12 +332,8 @@ export default function App() {
   });
 
   const handleSearchClick = () => {
-    const offersSection = document.getElementById('navOffers');
-    if (offersSection) {
-      offersSection.scrollIntoView({ behavior: 'smooth' });
-    }
+    smoothScrollTo(null, 'navOffers');
   };
-
 
   // Načtení dat z Google Tabulky
   useEffect(() => {
@@ -387,7 +421,7 @@ export default function App() {
   // Posun na začátek při otevření inzerátu
   useEffect(() => {
     if (selectedProperty) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      smoothScrollTo(null, 'top');
     }
   }, [selectedProperty]);
 
@@ -432,6 +466,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 font-body text-slate-800">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700&family=Inter:wght@300;400;500;600&display=swap');
+        
         .font-luxury { font-family: 'Playfair Display', serif; }
         .font-body { font-family: 'Inter', sans-serif; }
         /* Třída pro skrytí posuvníku v karuselu ale zachování jeho funkce */
@@ -446,9 +481,9 @@ export default function App() {
             {/* Logo */}
             <div 
               className="flex-shrink-0 flex items-center gap-4 cursor-pointer group"
-              onClick={() => {
+              onClick={(e) => {
                 setSelectedProperty(null);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                smoothScrollTo(e, 'top');
               }}
             >
               <div className="relative w-10 h-10 flex items-center justify-center">
@@ -474,7 +509,12 @@ export default function App() {
             <nav className="hidden lg:flex space-x-8">
               {!selectedProperty ? (
                 ['navHome', 'navOffers', 'navSell', 'navCalc', 'navAbout'].map((item) => (
-                  <a key={`desknav-${item}`} href={`#${item}`} className="text-slate-600 hover:text-slate-900 font-medium transition-colors">
+                  <a 
+                    key={`desknav-${item}`} 
+                    href={`#${item}`} 
+                    onClick={(e) => smoothScrollTo(e, item)}
+                    className="text-slate-600 hover:text-slate-900 font-medium transition-colors"
+                  >
                     {t[item]}
                   </a>
                 ))
@@ -495,7 +535,11 @@ export default function App() {
                 <button onClick={() => setLang('cz')} className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-all ${lang === 'cz' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>CZ</button>
                 <button onClick={() => setLang('en')} className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-all ${lang === 'en' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>EN</button>
               </div>
-              <a href="#contact" className="bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors shadow-sm">
+              <a 
+                href="#contact" 
+                onClick={(e) => smoothScrollTo(e, 'contact')}
+                className="bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors shadow-sm"
+              >
                 {t.navContact}
               </a>
             </div>
@@ -518,7 +562,12 @@ export default function App() {
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="lg:hidden bg-white border-b border-slate-200 overflow-hidden shadow-lg">
               <div className="px-4 pt-2 pb-6 space-y-2">
                 {['navHome', 'navOffers', 'navSell', 'navCalc', 'navAbout', 'navContact'].map((item) => (
-                  <a key={`mobnav-${item}`} href={`#${item}`} onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-lg">
+                  <a 
+                    key={`mobnav-${item}`} 
+                    href={`#${item}`} 
+                    onClick={(e) => { setIsMobileMenuOpen(false); smoothScrollTo(e, item); }} 
+                    className="block px-4 py-3 text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-lg"
+                  >
                     {t[item]}
                   </a>
                 ))}
@@ -689,7 +738,7 @@ export default function App() {
                             <ChevronRight size={24} strokeWidth={2} />
                           </button>
                           
-                          {/* Kontejner s fotkami - ROZMĚRY JSOU TEĎ 100% PEVNÉ */}
+                          {/* Kontejner s fotkami */}
                           <div 
                             ref={galleryScrollRef}
                             className="flex items-start gap-4 overflow-x-auto snap-x snap-mandatory pb-6 pt-2 hide-scrollbar scroll-smooth"
@@ -784,10 +833,18 @@ export default function App() {
                       {t.heroSub}
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-                      <a href="#navOffers" className="w-full sm:w-auto px-8 py-4 bg-white text-slate-900 font-medium rounded-xl shadow-lg hover:bg-slate-50 hover:-translate-y-1 transition-all">
+                      <a 
+                        href="#navOffers" 
+                        onClick={(e) => smoothScrollTo(e, 'navOffers')}
+                        className="w-full sm:w-auto px-8 py-4 bg-white text-slate-900 font-medium rounded-xl shadow-lg hover:bg-slate-50 hover:-translate-y-1 transition-all"
+                      >
                         {t.viewOffers}
                       </a>
-                      <a href="#navSell" className="w-full sm:w-auto px-8 py-4 bg-transparent border border-white/50 text-white font-medium rounded-xl hover:bg-white/10 hover:-translate-y-1 transition-all">
+                      <a 
+                        href="#navSell" 
+                        onClick={(e) => smoothScrollTo(e, 'navSell')}
+                        className="w-full sm:w-auto px-8 py-4 bg-transparent border border-white/50 text-white font-medium rounded-xl hover:bg-white/10 hover:-translate-y-1 transition-all"
+                      >
                         {t.wantToSell}
                       </a>
                     </div>
@@ -1031,9 +1088,9 @@ export default function App() {
           <div>
             <div 
               className="flex items-center gap-4 mb-6 cursor-pointer group w-fit text-white"
-              onClick={() => {
+              onClick={(e) => {
                 setSelectedProperty(null);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                smoothScrollTo(e, 'top');
               }}
             >
               {/* Monogram Footer */}
@@ -1069,9 +1126,9 @@ export default function App() {
           <div>
             <h4 className="text-white font-medium mb-6 uppercase tracking-widest text-sm">Odkazy</h4>
             <ul className="space-y-4 font-light">
-              <li><a href="#navOffers" className="hover:text-white transition-colors">{t.navOffers}</a></li>
-              <li><a href="#navSell" className="hover:text-white transition-colors">{t.navSell}</a></li>
-              <li><a href="#navCalc" className="hover:text-white transition-colors">{t.navCalc}</a></li>
+              <li><a href="#navOffers" onClick={(e) => smoothScrollTo(e, 'navOffers')} className="hover:text-white transition-colors">{t.navOffers}</a></li>
+              <li><a href="#navSell" onClick={(e) => smoothScrollTo(e, 'navSell')} className="hover:text-white transition-colors">{t.navSell}</a></li>
+              <li><a href="#navCalc" onClick={(e) => smoothScrollTo(e, 'navCalc')} className="hover:text-white transition-colors">{t.navCalc}</a></li>
             </ul>
           </div>
         </div>
