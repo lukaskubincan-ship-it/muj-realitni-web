@@ -25,6 +25,7 @@ const dict = {
     filterLoc: "Lokalita",
     filterPrice: "Cena do",
     filterSearch: "Vyhledat",
+    filterAll: "Vše",
     propTypeHouse: "Dům",
     propTypeApt: "Byt",
     propTypeLand: "Pozemek",
@@ -83,6 +84,7 @@ const dict = {
     filterLoc: "Location",
     filterPrice: "Max Price",
     filterSearch: "Search",
+    filterAll: "All",
     propTypeHouse: "House",
     propTypeApt: "Apartment",
     propTypeLand: "Land",
@@ -265,6 +267,39 @@ export default function App() {
   const [properties, setProperties] = useState(fallbackProperties);
   const [loadingOffers, setLoadingOffers] = useState(true);
   const t = dict[lang];
+
+  // --- STAVY PRO FILTR ---
+  const [filterType, setFilterType] = useState('all');
+  const [filterTrans, setFilterTrans] = useState('all');
+  const [filterLoc, setFilterLoc] = useState('all');
+
+  // Funkce pro získání unikátních lokalit z dat
+  const uniqueLocations = ['all', ...new Set(properties.map(p => {
+    // Vezmeme jen název města před pomlčkou (např. z "Cheb - Skalka" vezmeme "Cheb")
+    return p.loc.split('-')[0].trim();
+  }))];
+
+  // Filtrované nemovitosti
+  const filteredProperties = properties.filter(prop => {
+    const matchType = filterType === 'all' || prop.type === filterType;
+    
+    // Logika pro filtrování transakce:
+    // Pokud máme v aplikaci explicitně oddělené prodeje a pronájmy (např. přes štítky nebo nový sloupec), 
+    // můžeme to zde filtrovat. Prozatím předpokládáme, že většina je prodej.
+    const matchTrans = filterTrans === 'all' || true; // Placeholder pro skutečnou logiku
+
+    const matchLoc = filterLoc === 'all' || prop.loc.includes(filterLoc);
+    
+    return matchType && matchTrans && matchLoc;
+  });
+
+  const handleSearchClick = () => {
+    const offersSection = document.getElementById('navOffers');
+    if (offersSection) {
+      offersSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
 
   // Načtení dat z Google Tabulky
   useEffect(() => {
@@ -654,7 +689,7 @@ export default function App() {
                             <ChevronRight size={24} strokeWidth={2} />
                           </button>
                           
-                          {/* Kontejner s fotkami */}
+                          {/* Kontejner s fotkami - ROZMĚRY JSOU TEĎ 100% PEVNÉ */}
                           <div 
                             ref={galleryScrollRef}
                             className="flex items-start gap-4 overflow-x-auto snap-x snap-mandatory pb-6 pt-2 hide-scrollbar scroll-smooth"
@@ -765,32 +800,50 @@ export default function App() {
                     <div className="bg-white rounded-2xl shadow-xl p-6 flex items-center gap-4 border border-slate-100">
                       <div className="flex-1">
                         <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-2 ml-1">{t.filterType}</label>
-                        <select className="w-full bg-slate-50 border-none text-slate-900 font-medium rounded-xl focus:ring-0 cursor-pointer py-3 px-4 transition-colors">
-                          <option>{t.propTypeHouse}</option>
-                          <option>{t.propTypeApt}</option>
-                          <option>{t.propTypeLand}</option>
+                        <select 
+                          value={filterType}
+                          onChange={(e) => setFilterType(e.target.value)}
+                          className="w-full bg-slate-50 border-none text-slate-900 font-medium rounded-xl focus:ring-0 cursor-pointer py-3 px-4 transition-colors"
+                        >
+                          <option value="all">{t.filterAll}</option>
+                          <option value="house">{t.propTypeHouse}</option>
+                          <option value="apartment">{t.propTypeApt}</option>
+                          <option value="land">{t.propTypeLand}</option>
                         </select>
                       </div>
                       <div className="w-px h-12 bg-slate-200 mx-2"></div>
                       <div className="flex-1">
                         <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-2 ml-1">{t.filterTrans}</label>
-                        <select className="w-full bg-slate-50 border-none text-slate-900 font-medium rounded-xl focus:ring-0 cursor-pointer py-3 px-4 transition-colors">
-                          <option>{t.transSale}</option>
-                          <option>{t.transRent}</option>
+                        <select 
+                          value={filterTrans}
+                          onChange={(e) => setFilterTrans(e.target.value)}
+                          className="w-full bg-slate-50 border-none text-slate-900 font-medium rounded-xl focus:ring-0 cursor-pointer py-3 px-4 transition-colors"
+                        >
+                          <option value="all">{t.filterAll}</option>
+                          <option value="sale">{t.transSale}</option>
+                          <option value="rent">{t.transRent}</option>
                         </select>
                       </div>
                       <div className="w-px h-12 bg-slate-200 mx-2"></div>
                       <div className="flex-1">
                         <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-2 ml-1">{t.filterLoc}</label>
-                        <select className="w-full bg-slate-50 border-none text-slate-900 font-medium rounded-xl focus:ring-0 cursor-pointer py-3 px-4 transition-colors">
-                          <option>Cheb</option>
-                          <option>Karlovy Vary</option>
-                          <option>Mariánské Lázně</option>
-                          <option>Františkovy Lázně</option>
+                        <select 
+                          value={filterLoc}
+                          onChange={(e) => setFilterLoc(e.target.value)}
+                          className="w-full bg-slate-50 border-none text-slate-900 font-medium rounded-xl focus:ring-0 cursor-pointer py-3 px-4 transition-colors"
+                        >
+                          {uniqueLocations.map(loc => (
+                            <option key={`loc-filter-${loc}`} value={loc}>
+                              {loc === 'all' ? t.filterAll : loc}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div className="w-px h-12 bg-slate-200 mx-2"></div>
-                      <button className="bg-slate-900 text-white px-8 py-4 rounded-xl font-medium hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm mt-6">
+                      <button 
+                        onClick={handleSearchClick}
+                        className="bg-slate-900 text-white px-8 py-4 rounded-xl font-medium hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm mt-6"
+                      >
                         <Search size={20} strokeWidth={1.5} />
                         {t.filterSearch}
                       </button>
@@ -813,9 +866,13 @@ export default function App() {
                   <div className="flex justify-center items-center py-20">
                     <Loader2 className="animate-spin text-slate-400" size={48} strokeWidth={1.5} />
                   </div>
+                ) : filteredProperties.length === 0 ? (
+                  <div className="text-center py-20 text-slate-500">
+                    Nenalezeny žádné nemovitosti odpovídající vašemu výběru.
+                  </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {properties.map((prop, index) => (
+                    {filteredProperties.map((prop, index) => (
                       <FadeIn key={`prop-${prop.id}-${index}`} delay={index * 0.1}>
                         <div 
                           onClick={() => setSelectedProperty(prop)}
