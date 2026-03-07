@@ -9,6 +9,7 @@ import {
 
 // --- VERCEL ANALYTICS (VE VS CODE ODSTRANĚTE DVĚ LOMÍTKA NA ZAČÁTKU DALŠÍHO ŘÁDKU) ---
  import { Analytics } from '@vercel/analytics/react';
+ import { SpeedInsights } from "@vercel/speed-insights/react"
 
 // --- VLASTNÍ FUNKCE PRO KINEMATICKÉ PLYNULÉ SCROLLOVÁNÍ ---
 const smoothScrollTo = (e, targetId) => {
@@ -1228,6 +1229,7 @@ export default function App() {
 
       {/* --- VERCEL ANALYTICS (VE VS CODE TENTO ŘÁDEK PŘEPIŠTE POUZE NA <Analytics /> ) --- */}
        <Analytics />
+       <SpeedInsights />
     </div>
   );
 }
