@@ -50,7 +50,7 @@ const dict = {
     calcRate: "Úroková sazba (%)",
     calcResult: "Měsíční splátka",
     aboutTitle: "O nás",
-    aboutText1: "Realitní kancelář Kubinčan je stabilním partnerem na trhu s nemovitostmi v Karlovarském kraji. Specializujeme se především na lokalitu Cheb, Karlovy Vary a Mariánské Lázně.",
+    aboutText1: "Jsme stabilním partnerem na trhu s nemovitostmi v Karlovarském kraji. Specializujeme se především na lokalitu Cheb, Karlovy Vary a Mariánské Lázně.",
     aboutText2: "Zakládáme si na transparentnosti, profesionalitě a individuálním přístupu ke každému klientovi.",
     ourTeam: "Náš tým",
     mapTitle: "Působíme v celém regionu",
@@ -906,7 +906,7 @@ export default function App() {
                         <div className="text-sm text-slate-500 uppercase font-medium tracking-wider">Let zkušeností</div>
                       </div>
                       <div>
-                        <div className="text-4xl font-semibold text-slate-900 mb-2">500+</div>
+                        <div className="text-4xl font-semibold text-slate-900 mb-2">25+</div>
                         <div className="text-sm text-slate-500 uppercase font-medium tracking-wider">Prodaných nemovitostí</div>
                       </div>
                     </div>
