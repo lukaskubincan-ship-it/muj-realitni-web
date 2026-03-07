@@ -50,10 +50,11 @@ const dict = {
     calcRate: "Úroková sazba (%)",
     calcResult: "Měsíční splátka",
     aboutTitle: "O nás",
-    aboutText1: "Jsme stabilním partnerem na trhu s nemovitostmi v Karlovarském kraji. Specializujeme se především na lokalitu Cheb, Karlovy Vary a Mariánské Lázně.",
+    aboutText1: "Realitní kancelář Kubinčan je stabilním partnerem na trhu s nemovitostmi v Karlovarském kraji. Specializujeme se především na lokalitu Cheb, Karlovy Vary a Mariánské Lázně.",
     aboutText2: "Zakládáme si na transparentnosti, profesionalitě a individuálním přístupu ke každému klientovi.",
     ourTeam: "Náš tým",
     mapTitle: "Působíme v celém regionu",
+    mapSub: "Známe náš region jako své boty. Soustředíme se primárně na Karlovarský kraj, kde vám dokážeme nabídnout ty nejlepší lokální znalosti a osobní přístup.",
     callNow: "Zavolat",
     emailUs: "Napsat",
     whatsapp: "WhatsApp",
@@ -111,6 +112,7 @@ const dict = {
     aboutText2: "We pride ourselves on transparency, professionalism, and an individual approach to each client.",
     ourTeam: "Our Team",
     mapTitle: "We operate across the region",
+    mapSub: "We know our region like the back of our hands. We focus primarily on the Karlovy Vary region, where we can offer you the best local expertise and personal approach.",
     callNow: "Call Now",
     emailUs: "Email",
     whatsapp: "WhatsApp",
@@ -132,6 +134,8 @@ const fallbackProperties = [
     img: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
     title: { cz: "Moderní rodinný dům", en: "Modern Family House" },
     loc: "Cheb - Skalka",
+    lat: "50.0797",
+    lng: "12.3739",
     price: "8 500 000 CZK",
     beds: "5+kk",
     area: "185 m²",
@@ -159,6 +163,8 @@ const fallbackProperties = [
     img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
     title: { cz: "Světlý byt v centru", en: "Bright Apartment in Center" },
     loc: "Karlovy Vary",
+    lat: "50.2319",
+    lng: "12.8720",
     price: "4 200 000 CZK",
     beds: "3+1",
     area: "74 m²",
@@ -184,6 +190,8 @@ const fallbackProperties = [
     img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80",
     title: { cz: "Luxusní vila s bazénem", en: "Luxury Villa with Pool" },
     loc: "Mariánské Lázně",
+    lat: "49.9733",
+    lng: "12.7019",
     price: "15 900 000 CZK",
     beds: "6+kk",
     area: "320 m²",
@@ -211,24 +219,27 @@ const fallbackProperties = [
 // =========================================================================
 const team = [
   { 
-    name: "Petr Kubinčan", 
+    name: "Jan Kubinčan", 
     role: { cz: "Majitel & Hlavní makléř", en: "Owner & Lead Broker" }, 
-    img: "reality 1x1.jpeg" 
+    img: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=256&q=80" 
   },
   { 
-    name: "Spolupracovník", 
-    role: { cz: "Marketingový specialista", en: "Real Estate Specialist" }, 
+    name: "Petra Nováková", 
+    role: { cz: "Realitní specialistka", en: "Real Estate Specialist" }, 
     img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=256&q=80" 
   },
   { 
-    name: "Spolupracovník", 
-    role: { cz: "Realitní specialista", en: "Mortgage Advisor" }, 
+    name: "Tomáš Dvořák", 
+    role: { cz: "Hypoteční poradce", en: "Mortgage Advisor" }, 
     img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&q=80" 
   }
 ];
 
 // --- GOOGLE SHEETS NASTAVENÍ ---
 const SHEET_ID = '1-WjtdnZ2ln3qV6ZJtc9dfWVzhhePt2mNZLJK8qvyfp8';
+
+// --- NASTAVENÍ EMAILU PRO ODESÍLÁNÍ POPTÁVEK Z FORMULÁŘE ---
+const CONTACT_EMAIL = 'info@rkkubincan.cz';
 
 // --- COMPONENTS ---
 const FadeIn = ({ children, delay = 0, className = "" }) => (
@@ -248,7 +259,6 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
   
-  // Místo uložení pouze URL fotky nyní ukládáme INDEX fotky pro možnost listování.
   const [lightboxIndex, setLightboxIndex] = useState(null); 
   const galleryScrollRef = useRef(null);
 
@@ -265,25 +275,17 @@ export default function App() {
       }
       
       try {
-        console.log("3. Připojuji se ke Google Tabulce s ID:", SHEET_ID);
-        // PŘIDÁNO `&range=A:AZ`, aby Google vrátil všechny sloupce i když nemají nahoře nadpis
         const response = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&range=A:AZ`);
         const text = await response.text();
         
-        console.log("4. Odpověď z Googlu (prvních 100 znaků):", text.substring(0, 100));
-        
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const rows = json.table.rows;
-        console.log("5. Počet nalezených řádků v tabulce:", rows.length);
         
-        const dataRows = rows; 
-        
-        const fetchedProps = dataRows.map((row, index) => {
+        const fetchedProps = rows.map((row, index) => {
           const c = row.c;
           if (!c) return null;
           const safeVal = (i) => (c[i] && c[i].v !== null) ? c[i].v : '';
           
-          // Získání NEKONEČNĚ mnoha fotografií (povoluje i lokální URL jako /IMG_123.jpg)
           const urls = [];
           const pushValidUrl = (val) => {
             if (val && typeof val === 'string' && val.trim() !== '') {
@@ -295,9 +297,20 @@ export default function App() {
           pushValidUrl(safeVal(15)); // P: Fotka 2
           pushValidUrl(safeVal(16)); // Q: Fotka 3
           
-          // R(17) je vyhrazeno pro Matterport
-          // Od sloupce S(18) až po případný konec tabulky hledáme další URL adresy
-          for (let i = 18; i < 50; i++) {
+          // S(18): GPS Souřadnice
+          const rawGps = String(safeVal(18) || "");
+          let parsedLat = "";
+          let parsedLng = "";
+          if (rawGps.includes(',')) {
+            const parts = rawGps.split(',');
+            if(parts.length >= 2) {
+              parsedLat = parts[0].trim().replace(',', '.');
+              parsedLng = parts[1].trim().replace(',', '.');
+            }
+          }
+
+          // T(19) až do konce (AZ): Další URL adresy fotek
+          for (let i = 19; i < 50; i++) {
             pushValidUrl(safeVal(i));
           }
 
@@ -306,6 +319,8 @@ export default function App() {
             img: urls.length > 0 ? urls[0] : fallbackProperties[0].img, 
             title: { cz: safeVal(1), en: safeVal(2) },
             loc: safeVal(3),
+            lat: parsedLat,
+            lng: parsedLng,
             price: safeVal(4),
             beds: safeVal(5),
             area: safeVal(6),
@@ -323,9 +338,6 @@ export default function App() {
         
         if (fetchedProps.length > 0) {
           setProperties(fetchedProps);
-          console.log("8. Inzeráty byly úspěšně načteny do webu!");
-        } else {
-          console.warn("POZOR: Tabulka funguje, ale nenašel se žádný platný inzerát (chybí 'Název (CZ)' ve sloupci B).");
         }
       } catch (error) {
         console.error("CHYBA při zpracování dat:", error);
@@ -397,7 +409,13 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
-            <div className="flex-shrink-0 flex items-center gap-4 cursor-pointer group">
+            <div 
+              className="flex-shrink-0 flex items-center gap-4 cursor-pointer group"
+              onClick={() => {
+                setSelectedProperty(null);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
               <div className="relative w-10 h-10 flex items-center justify-center">
                 <div className="absolute inset-0 border-[1.5px] border-slate-900 rotate-45 transition-transform duration-700 ease-in-out group-hover:rotate-180"></div>
                 <div className="w-7 h-7 bg-slate-900 flex items-center justify-center transition-transform duration-700 ease-in-out group-hover:rotate-90">
@@ -636,12 +654,12 @@ export default function App() {
                             <ChevronRight size={24} strokeWidth={2} />
                           </button>
                           
-                          {/* Kontejner s fotkami - ROZMĚRY JSOU TEĎ 100% PEVNÉ */}
+                          {/* Kontejner s fotkami */}
                           <div 
                             ref={galleryScrollRef}
-                            className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-6 pt-2 hide-scrollbar scroll-smooth"
+                            className="flex items-start gap-4 overflow-x-auto snap-x snap-mandatory pb-6 pt-2 hide-scrollbar scroll-smooth"
                           >
-                            {/* Přeskakujeme první fotku (slice(1)), protože ta je už jako hlavní velká nahoře */}
+                            {/* Přeskakujeme první fotku (slice(1)) */}
                             {selectedProperty.gallery.slice(1).map((img, i) => (
                               <div 
                                 key={`gallery-item-${i}`} 
@@ -707,11 +725,19 @@ export default function App() {
             >
               {/* HERO SECTION */}
               <section id="navHome" className="relative h-[85vh] min-h-[600px] flex items-center justify-center">
-                {/* Background Image & Overlay */}
+                
+                {/* Background Image (Desktop verze - Počítače a tablety) */}
                 <div 
-                  className="absolute inset-0 bg-cover bg-center z-0"
-                  style={{ backgroundImage: "url('/reality-extend.jpeg')" }}
+                  className="absolute inset-0 bg-cover bg-center z-0 hidden md:block"
+                  style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=2000&q=80')" }}
                 />
+                
+                {/* Background Image (Mobilní verze - Speciálně oříznutá fotka) */}
+                <div 
+                  className="absolute inset-0 bg-cover bg-center z-0 block md:hidden"
+                  style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80')" }}
+                />
+
                 <div className="absolute inset-0 bg-slate-900/60 z-0" />
 
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-center">
@@ -860,33 +886,43 @@ export default function App() {
                 </div>
               </section>
 
-              {/* INTERACTIVE MAP & REGION FOCUS */}
-              <section className="py-0 relative h-[600px] bg-slate-100">
-                <div className="absolute inset-0">
-                  {/* Google Maps iframe placeholder targeting Karlovy Vary Region / Cheb */}
-                  <iframe 
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d163618.32431604085!2d12.3553755!3d50.075485!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47a09c258380db25%3A0x400af0f6615b130!2sCheb!5e0!3m2!1sen!2scz!4v1710000000000!5m2!1sen!2scz" 
-                    width="100%" 
-                    height="100%" 
-                    style={{ border: 0, filter: 'grayscale(0.6) opacity(0.8)' }} 
-                    allowFullScreen="" 
-                    loading="lazy" 
-                    referrerPolicy="no-referrer-when-downgrade"
-                    title="Region Map"
-                  ></iframe>
-                </div>
-                <div className="absolute inset-0 bg-slate-900/5 pointer-events-none"></div>
-                
-                {/* Overlay Box */}
-                <div className="absolute top-1/2 left-4 md:left-12 -translate-y-1/2 max-w-sm bg-white p-10 rounded-3xl shadow-lg z-10 border border-slate-100">
-                  <h3 className="text-2xl font-semibold text-slate-900 mb-6">{t.mapTitle}</h3>
-                  <ul className="space-y-4">
-                    {['Cheb', 'Karlovy Vary', 'Mariánské Lázně', 'Františkovy Lázně', 'Sokolov'].map((city, i) => (
-                      <li key={`city-${i}`} className="flex items-center text-slate-600 font-medium">
-                        <MapPin size={20} strokeWidth={1.5} className="text-slate-400 mr-3" /> {city}
-                      </li>
-                    ))}
-                  </ul>
+              {/* REGION FOCUS - INTERAKTIVNÍ MAPA NEMOVITOSTÍ */}
+              <section className="py-24 bg-white relative z-10">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <FadeIn>
+                    <div className="bg-slate-50 rounded-3xl p-8 md:p-12 lg:p-16 border border-slate-100 shadow-sm overflow-hidden flex flex-col lg:flex-row items-center gap-12">
+                      
+                      {/* Left Content */}
+                      <div className="w-full lg:w-1/2 z-10">
+                        <h2 className="text-3xl md:text-4xl font-luxury font-semibold text-slate-900 mb-6">{t.mapTitle}</h2>
+                        <p className="text-lg text-slate-600 mb-10 font-light leading-relaxed">
+                          {t.mapSub}
+                        </p>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {['Cheb', 'Karlovy Vary', 'Mariánské Lázně', 'Františkovy Lázně', 'Sokolov'].map((city, i) => (
+                            <div key={`city-${i}`} className="flex items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                              <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center mr-4 flex-shrink-0 text-slate-900">
+                                <MapPin size={20} strokeWidth={1.5} />
+                              </div>
+                              <span className="font-medium text-slate-700">{city}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Right Map Container - LEAFLET MAPA */}
+                      <div className="w-full lg:w-1/2 relative min-h-[450px] lg:h-[550px] rounded-[40px] shadow-2xl border border-slate-100 overflow-hidden isolate bg-slate-100">
+                        <RealEstateMap 
+                          properties={properties} 
+                          onPropertySelect={setSelectedProperty} 
+                          t={t} 
+                          lang={lang} 
+                        />
+                      </div>
+
+                    </div>
+                  </FadeIn>
                 </div>
               </section>
 
@@ -906,7 +942,7 @@ export default function App() {
                         <div className="text-sm text-slate-500 uppercase font-medium tracking-wider">Let zkušeností</div>
                       </div>
                       <div>
-                        <div className="text-4xl font-semibold text-slate-900 mb-2">25+</div>
+                        <div className="text-4xl font-semibold text-slate-900 mb-2">500+</div>
                         <div className="text-sm text-slate-500 uppercase font-medium tracking-wider">Prodaných nemovitostí</div>
                       </div>
                     </div>
@@ -936,7 +972,13 @@ export default function App() {
       <footer id="contact" className="bg-slate-950 text-slate-400 py-16 pb-32 md:pb-16 mt-12 relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-12">
           <div>
-            <div className="flex items-center gap-4 mb-6 cursor-pointer group w-fit text-white">
+            <div 
+              className="flex items-center gap-4 mb-6 cursor-pointer group w-fit text-white"
+              onClick={() => {
+                setSelectedProperty(null);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
               {/* Monogram Footer */}
               <div className="relative w-10 h-10 flex items-center justify-center">
                 <div className="absolute inset-0 border-[1.5px] border-white/70 rotate-45 transition-transform duration-700 ease-in-out group-hover:rotate-180"></div>
@@ -1073,11 +1115,213 @@ export default function App() {
 
 // --- SUB-COMPONENTS ---
 
+// NOVÁ BEZPEČNÁ MAPA (LEAFLET PŘES CDN) S AUTOMATICKÝM PŘIBLÍŽENÍM
+function RealEstateMap({ properties, onPropertySelect, t, lang }) {
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+
+  useEffect(() => {
+    const loadLeaflet = async () => {
+      // 1. Načtení stylů
+      if (!document.getElementById('leaflet-css')) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+      }
+
+      // 2. Načtení skriptu Leaflet
+      if (!window.L) {
+        const script = document.createElement('script');
+        script.id = 'leaflet-script';
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        document.head.appendChild(script);
+        
+        await new Promise(resolve => {
+          script.onload = resolve;
+        });
+      }
+
+      if (!mapRef.current || mapInstanceRef.current) return;
+
+      const L = window.L;
+      
+      // Inicializace mapy (střed nastavíme dynamicky níže)
+      const map = L.map(mapRef.current);
+      mapInstanceRef.current = map;
+
+      // Světlý "Voyager" motiv mapy
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://carto.com/">CartoDB</a>'
+      }).addTo(map);
+
+      const customIcon = L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      });
+
+      // Založení pole pro sběr všech souřadnic nemovitostí
+      const boundsCoords = [];
+      
+      // Funkce pro výběr správné SVG ikony podle typu nemovitosti
+      const getIconSvg = (type) => {
+        if (type === 'house') return `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`;
+        if (type === 'apartment') return `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path><path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path><path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path></svg>`;
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" x2="9" y1="3" y2="18"></line><line x1="15" x2="15" y1="6" y2="21"></line></svg>`;
+      };
+
+      // Získání překladu pro daný typ
+      const getTypeName = (type) => {
+        if (type === 'house') return t.propTypeHouse;
+        if (type === 'apartment') return t.propTypeApt;
+        return t.propTypeLand;
+      };
+
+      // Vykreslení špendlíků z databáze
+      properties.forEach(prop => {
+        if (prop.lat && prop.lng && !isNaN(parseFloat(prop.lat))) {
+          const lat = parseFloat(prop.lat);
+          const lng = parseFloat(prop.lng);
+          
+          // Přidáme souřadnici do našeho pole pro pozdější vycentrování
+          boundsCoords.push([lat, lng]);
+
+          const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+          
+          // ZVĚTŠENÝ POPUP HTML S IKONOU TYPU
+          const popupHtml = `
+            <div style="width: 260px; font-family: 'Inter', sans-serif;">
+              <div style="height: 160px; width: 100%; position: relative;">
+                <img src="${prop.img}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px 8px 0 0;" />
+                
+                <div style="position: absolute; top: 8px; left: 8px; background: rgba(255,255,255,0.9); padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: #0f172a; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  ${prop.tag[lang]}
+                </div>
+                
+                <div style="position: absolute; top: 8px; right: 8px; background: rgba(15,23,42,0.85); backdrop-filter: blur(4px); padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  ${getIconSvg(prop.type)}
+                  ${getTypeName(prop.type)}
+                </div>
+              </div>
+              <div style="padding: 14px;">
+                <div style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                  ${prop.loc}
+                </div>
+                <h4 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${prop.title[lang]}</h4>
+                <p style="margin: 0 0 12px 0; font-weight: 700; color: #0f172a; font-size: 16px;">${prop.price}</p>
+                <button id="btn-prop-${prop.id}" style="width: 100%; background: #0f172a; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 13px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${t.moreInfo}</button>
+              </div>
+            </div>
+          `;
+          
+          marker.bindPopup(popupHtml, {
+            closeButton: false,
+            className: 'custom-leaflet-popup'
+          });
+
+          // Napojení tlačítka "Více informací" na otevření detailu
+          marker.on('popupopen', () => {
+            const btn = document.getElementById(`btn-prop-${prop.id}`);
+            if (btn) {
+              btn.onclick = () => onPropertySelect(prop);
+            }
+          });
+        }
+      });
+
+      // Automatické přiblížení a vycentrování mapy podle nasbíraných pinu
+      if (boundsCoords.length > 0) {
+        const bounds = L.latLngBounds(boundsCoords);
+        // padding: nechá trochu volného okraje, maxZoom: zajistí, aby to nebylo přiblíženo až moc (když je jen 1 inzerát)
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+      } else {
+        // Fallback pro případ, že žádný inzerát nemá GPS souřadnice
+        map.setView([50.15, 12.65], 9);
+      }
+    };
+
+    loadLeaflet();
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [properties, lang, onPropertySelect, t]);
+
+  return (
+    <div className="w-full h-full relative">
+      <style>{`
+        .custom-leaflet-popup .leaflet-popup-content-wrapper { padding: 0; overflow: hidden; border-radius: 8px; border: none; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
+        .custom-leaflet-popup .leaflet-popup-content { margin: 0; width: auto !important; }
+        .custom-leaflet-popup .leaflet-popup-tip { background: white; }
+        .leaflet-container { z-index: 0; font-family: 'Inter', sans-serif; background: transparent; }
+      `}</style>
+      <div ref={mapRef} className="w-full h-full z-0"></div>
+    </div>
+  );
+}
+
 function ValuationForm({ t }) {
   const [step, setStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+
+  // Hodnoty zadané uživatelem do formuláře
   const [formType, setFormType] = useState('Dům');
   const [formCity, setFormCity] = useState('');
+  const [formArea, setFormArea] = useState('');
+  const [formName, setFormName] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+
+  const submitForm = async () => {
+    if (!formName || !formPhone) {
+      alert(t.step3.includes('Contacts') ? "Please fill in your name and phone number." : "Prosím vyplňte alespoň jméno a telefon.");
+      return;
+    }
+    
+    setIsSending(true);
+    
+    try {
+      // Odeslání na bezplatnou službu FormSubmit (napojeno na váš CONTACT_EMAIL nahoře)
+      const response = await fetch(`https://formsubmit.co/ajax/${CONTACT_EMAIL}`, {
+        method: "POST",
+        headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            Předmět: "Nová poptávka o odhad z webu",
+            Typ_nemovitosti: formType,
+            Město: formCity || "Neuvedeno",
+            Výměra: formArea ? `${formArea} m²` : "Neuvedeno",
+            Jméno: formName,
+            Telefon: formPhone,
+            Email: formEmail || "Neuvedeno"
+        })
+      });
+      
+      if (response.ok) {
+        setIsSubmitted(true);
+      } else {
+        alert("Něco se pokazilo při odesílání zprávy. Zkuste to prosím později.");
+      }
+    } catch (err) {
+       console.error("Chyba při odesílání formuláře:", err);
+       alert("Zkontrolujte své připojení k internetu a zkuste to znovu.");
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   if (isSubmitted) {
     return (
@@ -1086,7 +1330,7 @@ function ValuationForm({ t }) {
           <CheckCircle size={56} strokeWidth={1.5} />
         </motion.div>
         <h3 className="text-2xl font-semibold text-slate-900 mb-2">{t.successMsg}</h3>
-        <button onClick={() => { setStep(1); setIsSubmitted(false); }} className="mt-8 text-slate-500 hover:text-slate-900 underline font-medium transition-colors">
+        <button onClick={() => { setStep(1); setIsSubmitted(false); setFormCity(''); setFormArea(''); setFormName(''); setFormPhone(''); setFormEmail(''); }} className="mt-8 text-slate-500 hover:text-slate-900 underline font-medium transition-colors">
           Zpět
         </button>
       </div>
@@ -1115,10 +1359,10 @@ function ValuationForm({ t }) {
                 <button 
                   key={`type-${type}`} 
                   onClick={() => { setFormType(type); setStep(2); }} 
-                  className="bg-white border border-slate-200 hover:border-slate-900 rounded-xl p-8 text-center transition-all focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  className={`border rounded-xl p-8 text-center transition-all focus:outline-none focus:ring-1 focus:ring-slate-900 ${formType === type ? 'bg-slate-50 border-slate-900 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-400'}`}
                 >
-                  <Building size={32} strokeWidth={1.5} className="mx-auto mb-4 text-slate-400" />
-                  <span className="font-medium text-slate-700">{type}</span>
+                  <Building size={32} strokeWidth={1.5} className={`mx-auto mb-4 ${formType === type ? 'text-slate-900' : 'text-slate-400'}`} />
+                  <span className={`font-medium ${formType === type ? 'text-slate-900' : 'text-slate-700'}`}>{type}</span>
                 </button>
               ))}
             </div>
@@ -1141,7 +1385,13 @@ function ValuationForm({ t }) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">{t.step2.includes('Where') ? 'Approx. Area (m²)' : 'Přibližná výměra (m²)'}</label>
-                <input type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 text-slate-900 font-normal" placeholder={t.step2.includes('Where') ? 'E.g. 120' : 'Např. 120'} />
+                <input 
+                  type="number" 
+                  value={formArea}
+                  onChange={(e) => setFormArea(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 text-slate-900 font-normal" 
+                  placeholder={t.step2.includes('Where') ? 'E.g. 120' : 'Např. 120'} 
+                />
               </div>
             </div>
             <div className="flex justify-between mt-10 max-w-sm mx-auto">
@@ -1156,21 +1406,43 @@ function ValuationForm({ t }) {
             <h3 className="text-xl font-medium mb-6 text-slate-900 text-center">{t.step3}</h3>
             <div className="space-y-4 max-w-sm mx-auto">
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">{t.step3.includes('Contacts') ? 'Full Name' : 'Jméno a příjmení'}</label>
-                <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 font-normal" />
+                <label className="block text-sm font-medium text-slate-600 mb-1">{t.step3.includes('Contacts') ? 'Full Name' : 'Jméno a příjmení'} *</label>
+                <input 
+                  type="text" 
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 font-normal" 
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">{t.step3.includes('Contacts') ? 'Phone' : 'Telefon'}</label>
-                <input type="tel" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 font-normal" />
+                <label className="block text-sm font-medium text-slate-600 mb-1">{t.step3.includes('Contacts') ? 'Phone' : 'Telefon'} *</label>
+                <input 
+                  type="tel" 
+                  value={formPhone}
+                  onChange={(e) => setFormPhone(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 font-normal" 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">E-mail</label>
-                <input type="email" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 font-normal" />
+                <input 
+                  type="email" 
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 font-normal" 
+                />
               </div>
             </div>
             <div className="flex justify-between mt-10 max-w-sm mx-auto">
               <button onClick={() => setStep(2)} className="text-slate-500 font-medium hover:text-slate-900">Zpět</button>
-              <button onClick={() => setIsSubmitted(true)} className="bg-slate-900 text-white px-8 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors shadow-sm">{t.submit}</button>
+              <button 
+                onClick={submitForm} 
+                disabled={isSending}
+                className="bg-slate-900 text-white px-8 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-70 flex items-center justify-center gap-2"
+              >
+                {isSending ? <Loader2 size={18} className="animate-spin" /> : null}
+                {isSending ? (t.step3.includes('Contacts') ? "Sending..." : "Odesílám...") : t.submit}
+              </button>
             </div>
           </motion.div>
         )}
