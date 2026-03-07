@@ -7,6 +7,9 @@ import {
   Maximize, Check
 } from 'lucide-react';
 
+// --- VERCEL ANALYTICS (VE VS CODE ODSTRANĚTE DVĚ LOMÍTKA NA ZAČÁTKU DALŠÍHO ŘÁDKU) ---
+ import { Analytics } from '@vercel/analytics/react';
+
 // --- VLASTNÍ FUNKCE PRO KINEMATICKÉ PLYNULÉ SCROLLOVÁNÍ ---
 const smoothScrollTo = (e, targetId) => {
   if (e && e.preventDefault) e.preventDefault();
@@ -753,7 +756,7 @@ export default function App() {
                                 <img src={img} alt={`Gallery ${i+1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                 <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/20 transition-colors flex items-center justify-center">
                                   <Maximize className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={32} strokeWidth={1.5} />
-                                 </div>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -1222,6 +1225,9 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* --- VERCEL ANALYTICS (VE VS CODE TENTO ŘÁDEK PŘEPIŠTE POUZE NA <Analytics /> ) --- */}
+       <Analytics />
     </div>
   );
 }
