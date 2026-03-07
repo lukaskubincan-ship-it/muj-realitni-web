@@ -219,17 +219,17 @@ const fallbackProperties = [
 // =========================================================================
 const team = [
   { 
-    name: "Jan Kubinčan", 
+    name: "Petr Kubinčan", 
     role: { cz: "Majitel & Hlavní makléř", en: "Owner & Lead Broker" }, 
-    img: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=256&q=80" 
+    img: "reality 1x1.jpeg" 
   },
   { 
-    name: "Petra Nováková", 
+    name: "Spolupracovník", 
     role: { cz: "Realitní specialistka", en: "Real Estate Specialist" }, 
     img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=256&q=80" 
   },
   { 
-    name: "Tomáš Dvořák", 
+    name: "Spolupracovník", 
     role: { cz: "Hypoteční poradce", en: "Mortgage Advisor" }, 
     img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&q=80" 
   }
@@ -729,13 +729,13 @@ export default function App() {
                 {/* Background Image (Desktop verze - Počítače a tablety) */}
                 <div 
                   className="absolute inset-0 bg-cover bg-center z-0 hidden md:block"
-                  style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=2000&q=80')" }}
+                  style={{ backgroundImage: "url('reality-extend.jpeg')" }}
                 />
                 
                 {/* Background Image (Mobilní verze - Speciálně oříznutá fotka) */}
                 <div 
                   className="absolute inset-0 bg-cover bg-center z-0 block md:hidden"
-                  style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80')" }}
+                  style={{ backgroundImage: "url('reality 1x1.jpeg')" }}
                 />
 
                 <div className="absolute inset-0 bg-slate-900/60 z-0" />
@@ -942,7 +942,7 @@ export default function App() {
                         <div className="text-sm text-slate-500 uppercase font-medium tracking-wider">Let zkušeností</div>
                       </div>
                       <div>
-                        <div className="text-4xl font-semibold text-slate-900 mb-2">500+</div>
+                        <div className="text-4xl font-semibold text-slate-900 mb-2">25+</div>
                         <div className="text-sm text-slate-500 uppercase font-medium tracking-wider">Prodaných nemovitostí</div>
                       </div>
                     </div>
