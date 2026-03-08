@@ -109,6 +109,7 @@ const dict = {
     interested: "Mám zájem o prohlídku",
     gallery: "Fotogalerie",
     backToOffers: "Zpět na nabídku",
+    propLocationMap: "Mapa lokality",
   },
   en: {
     navHome: "Home",
@@ -169,6 +170,7 @@ const dict = {
     interested: "Request a Viewing",
     gallery: "Photo Gallery",
     backToOffers: "Back to Offers",
+    propLocationMap: "Location Map",
   }
 };
 
@@ -298,6 +300,345 @@ const FadeIn = ({ children, delay = 0, className = "" }) => (
     {children}
   </motion.div>
 );
+
+// MAPA PRO DETAIL JEDNÉ NEMOVITOSTI
+function SinglePropertyMap({ lat, lng }) {
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+
+  useEffect(() => {
+    if (!lat || !lng || isNaN(parseFloat(lat))) return;
+
+    const loadLeaflet = async () => {
+      if (!document.getElementById('leaflet-css')) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+      }
+
+      if (!window.L) {
+        const script = document.createElement('script');
+        script.id = 'leaflet-script';
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        document.head.appendChild(script);
+        await new Promise(resolve => { script.onload = resolve; });
+      }
+
+      if (!mapRef.current || mapInstanceRef.current) return;
+
+      const L = window.L;
+      
+      // Vypnutí scrollování kolečkem myši, aby nerušilo čtení webu!
+      const map = L.map(mapRef.current, {
+        scrollWheelZoom: false 
+      }).setView([parseFloat(lat), parseFloat(lng)], 15);
+      
+      mapInstanceRef.current = map;
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://carto.com/">CartoDB</a>'
+      }).addTo(map);
+
+      const customIcon = L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+      });
+
+      L.marker([parseFloat(lat), parseFloat(lng)], { icon: customIcon }).addTo(map);
+
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 300);
+    };
+
+    loadLeaflet();
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [lat, lng]);
+
+  return (
+    <div className="absolute inset-0 w-full h-full">
+      <style>{`
+        .leaflet-container { z-index: 0; font-family: 'Inter', sans-serif; background: transparent; }
+      `}</style>
+      <div ref={mapRef} className="w-full h-full z-0"></div>
+    </div>
+  );
+}
+
+function ValuationForm({ t }) {
+  const [step, setStep] = useState(1);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+
+  // Hodnoty zadané uživatelem do formuláře
+  const [formType, setFormType] = useState('Dům');
+  const [formCity, setFormCity] = useState('');
+  const [formArea, setFormArea] = useState('');
+  const [formName, setFormName] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+
+  const submitForm = async () => {
+    if (!formName || !formPhone) {
+      alert(t.step3.includes('Contacts') ? "Please fill in your name and phone number." : "Prosím vyplňte alespoň jméno a telefon.");
+      return;
+    }
+    
+    setIsSending(true);
+    
+    try {
+      // Odeslání na bezplatnou službu FormSubmit (napojeno na váš CONTACT_EMAIL nahoře)
+      const response = await fetch(`https://formsubmit.co/ajax/${CONTACT_EMAIL}`, {
+        method: "POST",
+        headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            Předmět: "Nová poptávka o odhad z webu",
+            Typ_nemovitosti: formType,
+            Město: formCity || "Neuvedeno",
+            Výměra: formArea ? `${formArea} m²` : "Neuvedeno",
+            Jméno: formName,
+            Telefon: formPhone,
+            Email: formEmail || "Neuvedeno"
+        })
+      });
+      
+      if (response.ok) {
+        setIsSubmitted(true);
+      } else {
+        alert("Něco se pokazilo při odesílání zprávy. Zkuste to prosím později.");
+      }
+    } catch (err) {
+       console.error("Chyba při odesílání formuláře:", err);
+       alert("Zkontrolujte své připojení k internetu a zkuste to znovu.");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  if (isSubmitted) {
+    return (
+      <div className="text-center py-12">
+        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="inline-block bg-green-50 p-4 rounded-full mb-6 text-green-600">
+          <CheckCircle size={56} strokeWidth={1.5} />
+        </motion.div>
+        <h3 className="text-2xl font-semibold text-slate-900 mb-2">{t.successMsg}</h3>
+        <button onClick={() => { setStep(1); setIsSubmitted(false); setFormCity(''); setFormArea(''); setFormName(''); setFormPhone(''); setFormEmail(''); }} className="mt-8 text-slate-500 hover:text-slate-900 underline font-medium transition-colors">
+          Zpět
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Progress */}
+      <div className="flex justify-between mb-8 relative px-2">
+        <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-200 -z-10 -translate-y-1/2"></div>
+        <div className="absolute top-1/2 left-0 h-px bg-slate-900 -z-10 -translate-y-1/2 transition-all duration-300" style={{ width: `${((step - 1) / 2) * 100}%` }}></div>
+        {[1, 2, 3].map((s) => (
+          <div key={`prog-${s}`} className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm border transition-colors ${step >= s ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-400'}`}>
+            {s}
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        {step === 1 && (
+          <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <h3 className="text-xl font-medium mb-6 text-slate-900 text-center">{t.step1}</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {['Dům', 'Byt', 'Pozemek'].map((type) => (
+                <button 
+                  key={`type-${type}`} 
+                  onClick={() => { setFormType(type); setStep(2); }} 
+                  className={`border rounded-xl p-8 text-center transition-all focus:outline-none focus:ring-1 focus:ring-slate-900 ${formType === type ? 'bg-slate-50 border-slate-900 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-400'}`}
+                >
+                  <Building size={32} strokeWidth={1.5} className={`mx-auto mb-4 ${formType === type ? 'text-slate-900' : 'text-slate-400'}`} />
+                  <span className={`font-medium ${formType === type ? 'text-slate-900' : 'text-slate-700'}`}>{type}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {step === 2 && (
+          <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <h3 className="text-xl font-medium mb-6 text-slate-900 text-center">{t.step2}</h3>
+            <div className="space-y-4 max-w-sm mx-auto">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">{t.step2.includes('Where') ? 'City / Municipality' : 'Město / Obec'}</label>
+                <input 
+                  type="text" 
+                  value={formCity}
+                  onChange={(e) => setFormCity(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 text-slate-900 font-normal" 
+                  placeholder={t.step2.includes('Where') ? 'E.g. Cheb' : 'Např. Cheb'} 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">{t.step2.includes('Where') ? 'Approx. Area (m²)' : 'Přibližná výměra (m²)'}</label>
+                <input 
+                  type="number" 
+                  value={formArea}
+                  onChange={(e) => setFormArea(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 text-slate-900 font-normal" 
+                  placeholder={t.step2.includes('Where') ? 'E.g. 120' : 'Např. 120'} 
+                />
+              </div>
+            </div>
+            <div className="flex justify-between mt-10 max-w-sm mx-auto">
+              <button onClick={() => setStep(1)} className="text-slate-500 font-medium hover:text-slate-900">Zpět</button>
+              <button onClick={() => setStep(3)} className="bg-slate-900 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors">{t.next}</button>
+            </div>
+          </motion.div>
+        )}
+
+        {step === 3 && (
+          <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <h3 className="text-xl font-medium mb-6 text-slate-900 text-center">{t.step3}</h3>
+            <div className="space-y-4 max-w-sm mx-auto">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">{t.step3.includes('Contacts') ? 'Full Name' : 'Jméno a příjmení'} *</label>
+                <input 
+                  type="text" 
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 font-normal" 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">{t.step3.includes('Contacts') ? 'Phone' : 'Telefon'} *</label>
+                <input 
+                  type="tel" 
+                  value={formPhone}
+                  onChange={(e) => setFormPhone(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 font-normal" 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">E-mail</label>
+                <input 
+                  type="email" 
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 font-normal" 
+                />
+              </div>
+            </div>
+            <div className="flex justify-between mt-10 max-w-sm mx-auto">
+              <button onClick={() => setStep(2)} className="text-slate-500 font-medium hover:text-slate-900">Zpět</button>
+              <button 
+                onClick={submitForm} 
+                disabled={isSending}
+                className="bg-slate-900 text-white px-8 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-70 flex items-center justify-center gap-2"
+              >
+                {isSending ? <Loader2 size={18} className="animate-spin" /> : null}
+                {isSending ? (t.step3.includes('Contacts') ? "Sending..." : "Odesílám...") : t.submit}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function MortgageCalculator({ t }) {
+  const [amount, setAmount] = useState(5000000);
+  const [years, setYears] = useState(25);
+  const [rate, setRate] = useState(5.5);
+
+  // Mortgage calculation formula
+  const principal = amount;
+  const monthlyRate = (rate / 100) / 12;
+  const numberOfPayments = years * 12;
+  
+  let monthlyPayment = 0;
+  if (monthlyRate === 0) {
+    monthlyPayment = principal / numberOfPayments;
+  } else {
+    monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
+      (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+  }
+
+  const formatCurrency = (val) => {
+    return Math.round(val).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " CZK";
+  };
+
+  return (
+    <div className="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden flex flex-col lg:flex-row">
+      {/* Sliders Area */}
+      <div className="p-8 md:p-14 flex-1 lg:w-2/3 border-b lg:border-b-0 lg:border-r border-slate-100">
+        
+        {/* Loan Amount Slider */}
+        <div className="mb-10">
+          <div className="flex justify-between items-end mb-4">
+            <label className="font-medium text-slate-500">{t.calcAmount}</label>
+            <span className="text-2xl font-semibold text-slate-900">{formatCurrency(amount)}</span>
+          </div>
+          <input 
+            type="range" min="500000" max="20000000" step="100000"
+            value={amount} onChange={(e) => setAmount(Number(e.target.value))}
+            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900"
+          />
+        </div>
+
+        {/* Years Slider */}
+        <div className="mb-10">
+          <div className="flex justify-between items-end mb-4">
+            <label className="font-medium text-slate-500">{t.calcYears}</label>
+            <span className="text-2xl font-semibold text-slate-900">{years}</span>
+          </div>
+          <input 
+            type="range" min="5" max="35" step="1"
+            value={years} onChange={(e) => setYears(Number(e.target.value))}
+            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900"
+          />
+        </div>
+
+        {/* Interest Rate Slider */}
+        <div>
+          <div className="flex justify-between items-end mb-4">
+            <label className="font-medium text-slate-500">{t.calcRate}</label>
+            <span className="text-2xl font-semibold text-slate-900">{rate.toFixed(1)} %</span>
+          </div>
+          <input 
+            type="range" min="1" max="10" step="0.1"
+            value={rate} onChange={(e) => setRate(Number(e.target.value))}
+            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900"
+          />
+        </div>
+
+      </div>
+
+      {/* Result Area */}
+      <div className="p-8 md:p-14 lg:w-1/3 bg-slate-900 text-white flex flex-col justify-center items-center text-center">
+        <Calculator size={48} strokeWidth={1.5} className="text-slate-500 mb-6" />
+        <h3 className="text-sm font-medium text-slate-400 mb-2 uppercase tracking-widest">{t.calcResult}</h3>
+        <div className="text-4xl md:text-5xl font-semibold text-white mb-8">
+          {formatCurrency(monthlyPayment)}
+        </div>
+        <p className="text-xs font-light text-slate-400">
+          * Výpočet je pouze orientační a nezahrnuje další poplatky.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const [lang, setLang] = useState('cz');
@@ -766,6 +1107,18 @@ export default function App() {
                       </section>
                     )}
 
+                    {/* LOKALITA NA MAPĚ PRO KONKRÉTNÍ NEMOVITOST */}
+                    {selectedProperty.lat && selectedProperty.lng && !isNaN(parseFloat(selectedProperty.lat)) && (
+                      <section>
+                        <h2 className="text-3xl font-luxury font-semibold text-slate-900 mb-6 flex items-center gap-3">
+                          <MapPin className="text-slate-700" strokeWidth={1.5} /> {t.propLocationMap}
+                        </h2>
+                        <div className="w-full h-[350px] sm:h-[450px] rounded-2xl overflow-hidden shadow-sm bg-slate-100 border border-slate-200 isolate relative">
+                          <SinglePropertyMap lat={selectedProperty.lat} lng={selectedProperty.lng} />
+                        </div>
+                      </section>
+                    )}
+
                   </div>
 
                   {/* Right Column: Sticky Contact Card */}
@@ -1033,7 +1386,7 @@ export default function App() {
                       {/* Right Map Container - LEAFLET MAPA S OPRAVENOU VÝŠKOU PRO MOBILY */}
                       <div className="w-full lg:w-1/2 h-[400px] sm:h-[450px] lg:h-[550px] relative rounded-[40px] shadow-2xl border border-slate-100 overflow-hidden isolate bg-slate-100 flex-shrink-0">
                         
-                        {/* NÁPIS NA MAPĚ - Přesunutý doprava, aby nezakrýval zoom */}
+                        {/* NÁPIS NA MAPĚ */}
                         <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-[10] bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-2.5 pointer-events-none">
                           <div className="w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center text-white">
                             <MapPin size={16} strokeWidth={2} />
@@ -1423,270 +1776,6 @@ function RealEstateMap({ properties, onPropertySelect, t, lang }) {
         .leaflet-container { z-index: 0; font-family: 'Inter', sans-serif; background: transparent; }
       `}</style>
       <div ref={mapRef} className="w-full h-full z-0"></div>
-    </div>
-  );
-}
-
-function ValuationForm({ t }) {
-  const [step, setStep] = useState(1);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-
-  // Hodnoty zadané uživatelem do formuláře
-  const [formType, setFormType] = useState('Dům');
-  const [formCity, setFormCity] = useState('');
-  const [formArea, setFormArea] = useState('');
-  const [formName, setFormName] = useState('');
-  const [formPhone, setFormPhone] = useState('');
-  const [formEmail, setFormEmail] = useState('');
-
-  const submitForm = async () => {
-    if (!formName || !formPhone) {
-      alert(t.step3.includes('Contacts') ? "Please fill in your name and phone number." : "Prosím vyplňte alespoň jméno a telefon.");
-      return;
-    }
-    
-    setIsSending(true);
-    
-    try {
-      // Odeslání na bezplatnou službu FormSubmit (napojeno na váš CONTACT_EMAIL nahoře)
-      const response = await fetch(`https://formsubmit.co/ajax/${CONTACT_EMAIL}`, {
-        method: "POST",
-        headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-            Předmět: "Nová poptávka o odhad z webu",
-            Typ_nemovitosti: formType,
-            Město: formCity || "Neuvedeno",
-            Výměra: formArea ? `${formArea} m²` : "Neuvedeno",
-            Jméno: formName,
-            Telefon: formPhone,
-            Email: formEmail || "Neuvedeno"
-        })
-      });
-      
-      if (response.ok) {
-        setIsSubmitted(true);
-      } else {
-        alert("Něco se pokazilo při odesílání zprávy. Zkuste to prosím později.");
-      }
-    } catch (err) {
-       console.error("Chyba při odesílání formuláře:", err);
-       alert("Zkontrolujte své připojení k internetu a zkuste to znovu.");
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  if (isSubmitted) {
-    return (
-      <div className="text-center py-12">
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="inline-block bg-green-50 p-4 rounded-full mb-6 text-green-600">
-          <CheckCircle size={56} strokeWidth={1.5} />
-        </motion.div>
-        <h3 className="text-2xl font-semibold text-slate-900 mb-2">{t.successMsg}</h3>
-        <button onClick={() => { setStep(1); setIsSubmitted(false); setFormCity(''); setFormArea(''); setFormName(''); setFormPhone(''); setFormEmail(''); }} className="mt-8 text-slate-500 hover:text-slate-900 underline font-medium transition-colors">
-          Zpět
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      {/* Progress */}
-      <div className="flex justify-between mb-8 relative px-2">
-        <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-200 -z-10 -translate-y-1/2"></div>
-        <div className="absolute top-1/2 left-0 h-px bg-slate-900 -z-10 -translate-y-1/2 transition-all duration-300" style={{ width: `${((step - 1) / 2) * 100}%` }}></div>
-        {[1, 2, 3].map((s) => (
-          <div key={`prog-${s}`} className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm border transition-colors ${step >= s ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-400'}`}>
-            {s}
-          </div>
-        ))}
-      </div>
-
-      <AnimatePresence mode="wait">
-        {step === 1 && (
-          <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-            <h3 className="text-xl font-medium mb-6 text-slate-900 text-center">{t.step1}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {['Dům', 'Byt', 'Pozemek'].map((type) => (
-                <button 
-                  key={`type-${type}`} 
-                  onClick={() => { setFormType(type); setStep(2); }} 
-                  className={`border rounded-xl p-8 text-center transition-all focus:outline-none focus:ring-1 focus:ring-slate-900 ${formType === type ? 'bg-slate-50 border-slate-900 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-400'}`}
-                >
-                  <Building size={32} strokeWidth={1.5} className={`mx-auto mb-4 ${formType === type ? 'text-slate-900' : 'text-slate-400'}`} />
-                  <span className={`font-medium ${formType === type ? 'text-slate-900' : 'text-slate-700'}`}>{type}</span>
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {step === 2 && (
-          <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-            <h3 className="text-xl font-medium mb-6 text-slate-900 text-center">{t.step2}</h3>
-            <div className="space-y-4 max-w-sm mx-auto">
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">{t.step2.includes('Where') ? 'City / Municipality' : 'Město / Obec'}</label>
-                <input 
-                  type="text" 
-                  value={formCity}
-                  onChange={(e) => setFormCity(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 text-slate-900 font-normal" 
-                  placeholder={t.step2.includes('Where') ? 'E.g. Cheb' : 'Např. Cheb'} 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">{t.step2.includes('Where') ? 'Approx. Area (m²)' : 'Přibližná výměra (m²)'}</label>
-                <input 
-                  type="number" 
-                  value={formArea}
-                  onChange={(e) => setFormArea(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 text-slate-900 font-normal" 
-                  placeholder={t.step2.includes('Where') ? 'E.g. 120' : 'Např. 120'} 
-                />
-              </div>
-            </div>
-            <div className="flex justify-between mt-10 max-w-sm mx-auto">
-              <button onClick={() => setStep(1)} className="text-slate-500 font-medium hover:text-slate-900">Zpět</button>
-              <button onClick={() => setStep(3)} className="bg-slate-900 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors">{t.next}</button>
-            </div>
-          </motion.div>
-        )}
-
-        {step === 3 && (
-          <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-            <h3 className="text-xl font-medium mb-6 text-slate-900 text-center">{t.step3}</h3>
-            <div className="space-y-4 max-w-sm mx-auto">
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">{t.step3.includes('Contacts') ? 'Full Name' : 'Jméno a příjmení'} *</label>
-                <input 
-                  type="text" 
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 font-normal" 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">{t.step3.includes('Contacts') ? 'Phone' : 'Telefon'} *</label>
-                <input 
-                  type="tel" 
-                  value={formPhone}
-                  onChange={(e) => setFormPhone(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 font-normal" 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">E-mail</label>
-                <input 
-                  type="email" 
-                  value={formEmail}
-                  onChange={(e) => setFormEmail(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 font-normal" 
-                />
-              </div>
-            </div>
-            <div className="flex justify-between mt-10 max-w-sm mx-auto">
-              <button onClick={() => setStep(2)} className="text-slate-500 font-medium hover:text-slate-900">Zpět</button>
-              <button 
-                onClick={submitForm} 
-                disabled={isSending}
-                className="bg-slate-900 text-white px-8 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-70 flex items-center justify-center gap-2"
-              >
-                {isSending ? <Loader2 size={18} className="animate-spin" /> : null}
-                {isSending ? (t.step3.includes('Contacts') ? "Sending..." : "Odesílám...") : t.submit}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function MortgageCalculator({ t }) {
-  const [amount, setAmount] = useState(5000000);
-  const [years, setYears] = useState(25);
-  const [rate, setRate] = useState(5.5);
-
-  // Mortgage calculation formula
-  const principal = amount;
-  const monthlyRate = (rate / 100) / 12;
-  const numberOfPayments = years * 12;
-  
-  let monthlyPayment = 0;
-  if (monthlyRate === 0) {
-    monthlyPayment = principal / numberOfPayments;
-  } else {
-    monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
-      (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
-  }
-
-  const formatCurrency = (val) => {
-    return Math.round(val).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " CZK";
-  };
-
-  return (
-    <div className="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden flex flex-col lg:flex-row">
-      {/* Sliders Area */}
-      <div className="p-8 md:p-14 flex-1 lg:w-2/3 border-b lg:border-b-0 lg:border-r border-slate-100">
-        
-        {/* Loan Amount Slider */}
-        <div className="mb-10">
-          <div className="flex justify-between items-end mb-4">
-            <label className="font-medium text-slate-500">{t.calcAmount}</label>
-            <span className="text-2xl font-semibold text-slate-900">{formatCurrency(amount)}</span>
-          </div>
-          <input 
-            type="range" min="500000" max="20000000" step="100000"
-            value={amount} onChange={(e) => setAmount(Number(e.target.value))}
-            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900"
-          />
-        </div>
-
-        {/* Years Slider */}
-        <div className="mb-10">
-          <div className="flex justify-between items-end mb-4">
-            <label className="font-medium text-slate-500">{t.calcYears}</label>
-            <span className="text-2xl font-semibold text-slate-900">{years}</span>
-          </div>
-          <input 
-            type="range" min="5" max="35" step="1"
-            value={years} onChange={(e) => setYears(Number(e.target.value))}
-            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900"
-          />
-        </div>
-
-        {/* Interest Rate Slider */}
-        <div>
-          <div className="flex justify-between items-end mb-4">
-            <label className="font-medium text-slate-500">{t.calcRate}</label>
-            <span className="text-2xl font-semibold text-slate-900">{rate.toFixed(1)} %</span>
-          </div>
-          <input 
-            type="range" min="1" max="10" step="0.1"
-            value={rate} onChange={(e) => setRate(Number(e.target.value))}
-            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900"
-          />
-        </div>
-
-      </div>
-
-      {/* Result Area */}
-      <div className="p-8 md:p-14 lg:w-1/3 bg-slate-900 text-white flex flex-col justify-center items-center text-center">
-        <Calculator size={48} strokeWidth={1.5} className="text-slate-500 mb-6" />
-        <h3 className="text-sm font-medium text-slate-400 mb-2 uppercase tracking-widest">{t.calcResult}</h3>
-        <div className="text-4xl md:text-5xl font-semibold text-white mb-8">
-          {formatCurrency(monthlyPayment)}
-        </div>
-        <p className="text-xs font-light text-slate-400">
-          * Výpočet je pouze orientační a nezahrnuje další poplatky.
-        </p>
-      </div>
     </div>
   );
 }
