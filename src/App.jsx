@@ -8,8 +8,7 @@ import {
 } from 'lucide-react';
 
 // --- VERCEL ANALYTICS (VE VS CODE ODSTRANĚTE DVĚ LOMÍTKA NA ZAČÁTKU DALŠÍHO ŘÁDKU) ---
- import { Analytics } from '@vercel/analytics/react';
- import { SpeedInsights } from "@vercel/speed-insights/react"
+// import { Analytics } from '@vercel/analytics/react';
 
 // --- VLASTNÍ FUNKCE PRO KINEMATICKÉ PLYNULÉ SCROLLOVÁNÍ ---
 const smoothScrollTo = (e, targetId) => {
@@ -98,6 +97,7 @@ const dict = {
     ourTeam: "Náš tým",
     mapTitle: "Působíme v celém regionu",
     mapSub: "Známe náš region jako své boty. Soustředíme se primárně na Karlovarský kraj, kde vám dokážeme nabídnout ty nejlepší lokální znalosti a osobní přístup.",
+    mapOverlay: "Mapa nemovitostí",
     callNow: "Zavolat",
     emailUs: "Napsat",
     whatsapp: "WhatsApp",
@@ -157,6 +157,7 @@ const dict = {
     ourTeam: "Our Team",
     mapTitle: "We operate across the region",
     mapSub: "We know our region like the back of our hands. We focus primarily on the Karlovy Vary region, where we can offer you the best local expertise and personal approach.",
+    mapOverlay: "Property Map",
     callNow: "Call Now",
     emailUs: "Email",
     whatsapp: "WhatsApp",
@@ -1031,6 +1032,15 @@ export default function App() {
 
                       {/* Right Map Container - LEAFLET MAPA S OPRAVENOU VÝŠKOU PRO MOBILY */}
                       <div className="w-full lg:w-1/2 h-[400px] sm:h-[450px] lg:h-[550px] relative rounded-[40px] shadow-2xl border border-slate-100 overflow-hidden isolate bg-slate-100 flex-shrink-0">
+                        
+                        {/* NÁPIS NA MAPĚ - Přesunutý doprava, aby nezakrýval zoom */}
+                        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-[10] bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-2.5 pointer-events-none">
+                          <div className="w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center text-white">
+                            <MapPin size={16} strokeWidth={2} />
+                          </div>
+                          <span className="font-semibold text-slate-900 text-sm tracking-wide">{t.mapOverlay}</span>
+                        </div>
+
                         <RealEstateMap 
                           properties={properties} 
                           onPropertySelect={setSelectedProperty} 
@@ -1228,8 +1238,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* --- VERCEL ANALYTICS (VE VS CODE TENTO ŘÁDEK PŘEPIŠTE POUZE NA <Analytics /> ) --- */}
-       <Analytics />
-       <SpeedInsights />
+      {/* <Analytics /> */}
     </div>
   );
 }
@@ -1289,6 +1298,7 @@ function RealEstateMap({ properties, onPropertySelect, t, lang }) {
 
       // Založení pole pro sběr všech souřadnic nemovitostí
       const boundsCoords = [];
+      const markers = []; // PŘIDÁNO: Pole pro ukládání špendlíků
       
       // Funkce pro výběr správné SVG ikony podle typu nemovitosti
       const getIconSvg = (type) => {
@@ -1314,6 +1324,7 @@ function RealEstateMap({ properties, onPropertySelect, t, lang }) {
           boundsCoords.push([lat, lng]);
 
           const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+          markers.push(marker); // PŘIDÁNO: Uložíme si referenci pro automatické rozkliknutí
           
           // ZVĚTŠENÝ POPUP HTML S IKONOU TYPU
           const popupHtml = `
@@ -1354,6 +1365,25 @@ function RealEstateMap({ properties, onPropertySelect, t, lang }) {
               btn.onclick = () => onPropertySelect(prop);
             }
           });
+        }
+      });
+
+      // PŘIDÁNO: Automatické rozkliknutí špendlíku po velkém přiblížení (zoomu)
+      map.on('zoomend', () => {
+        if (map.getZoom() >= 16) {
+          // Najdeme všechny špendlíky, které jsou aktuálně na obrazovce vidět
+          const visibleMarkers = markers.filter(m => map.getBounds().contains(m.getLatLng()));
+          
+          if (visibleMarkers.length > 0) {
+            // Seřadíme je od nejbližšího ke středu obrazovky
+            const center = map.getCenter();
+            visibleMarkers.sort((a, b) => center.distanceTo(a.getLatLng()) - center.distanceTo(b.getLatLng()));
+            
+            // Otevřeme ten nejblíže středu (pokud už není otevřený)
+            if (!visibleMarkers[0].isPopupOpen()) {
+              visibleMarkers[0].openPopup();
+            }
+          }
         }
       });
 
